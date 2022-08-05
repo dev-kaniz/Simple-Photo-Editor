@@ -1,0 +1,2 @@
+# Simple-Photo-Editor
+To build an Image Editor using HTML CSS &amp; JavaScript, you need to create three files: HTML, CSS &amp; JavaScript file. Once you create these files, just paste the given codes into your file. If you don’t know how to create these files, where to paste the codes, or don’t want to do these, you can simply download the source code files of this Image Editor by clicking on the given download button that is at the bottom of this page.
