@@ -1,107 +1,25 @@
-const fileInput = document.querySelector(".file-input"),
-filterOptions = document.querySelectorAll(".filter button"),
-filterName = document.querySelector(".filter-info .name"),
-filterValue = document.querySelector(".filter-info .value"),
-filterSlider = document.querySelector(".slider input"),
-rotateOptions = document.querySelectorAll(".rotate button"),
-previewImg = document.querySelector(".preview-img img"),
-resetFilterBtn = document.querySelector(".reset-filter"),
-chooseImgBtn = document.querySelector(".choose-img"),
-saveImgBtn = document.querySelector(".save-img");
-let brightness = "100", saturation = "100", inversion = "0", grayscale = "0";
-let rotate = 0, flipHorizontal = 1, flipVertical = 1;
-const loadImage = () => {
-    let file = fileInput.files[0];
-    if(!file) return;
-    previewImg.src = URL.createObjectURL(file);
-    previewImg.addEventListener("load", () => {
-        resetFilterBtn.click();
-        document.querySelector(".container").classList.remove("disable");
-    });
-}
-const applyFilter = () => {
-    previewImg.style.transform = `rotate(${rotate}deg) scale(${flipHorizontal}, ${flipVertical})`;
-    previewImg.style.filter = `brightness(${brightness}%) saturate(${saturation}%) invert(${inversion}%) grayscale(${grayscale}%)`;
-}
-filterOptions.forEach(option => {
-    option.addEventListener("click", () => {
-        document.querySelector(".active").classList.remove("active");
-        option.classList.add("active");
-        filterName.innerText = option.innerText;
-        if(option.id === "brightness") {
-            filterSlider.max = "200";
-            filterSlider.value = brightness;
-            filterValue.innerText = `${brightness}%`;
-        } else if(option.id === "saturation") {
-            filterSlider.max = "200";
-            filterSlider.value = saturation;
-            filterValue.innerText = `${saturation}%`
-        } else if(option.id === "inversion") {
-            filterSlider.max = "100";
-            filterSlider.value = inversion;
-            filterValue.innerText = `${inversion}%`;
-        } else {
-            filterSlider.max = "100";
-            filterSlider.value = grayscale;
-            filterValue.innerText = `${grayscale}%`;
-        }
-    });
-});
-const updateFilter = () => {
-    filterValue.innerText = `${filterSlider.value}%`;
-    const selectedFilter = document.querySelector(".filter .active");
-    if(selectedFilter.id === "brightness") {
-        brightness = filterSlider.value;
-    } else if(selectedFilter.id === "saturation") {
-        saturation = filterSlider.value;
-    } else if(selectedFilter.id === "inversion") {
-        inversion = filterSlider.value;
-    } else {
-        grayscale = filterSlider.value;
-    }
-    applyFilter();
-}
-rotateOptions.forEach(option => {
-    option.addEventListener("click", () => {
-        if(option.id === "left") {
-            rotate -= 90;
-        } else if(option.id === "right") {
-            rotate += 90;
-        } else if(option.id === "horizontal") {
-            flipHorizontal = flipHorizontal === 1 ? -1 : 1;
-        } else {
-            flipVertical = flipVertical === 1 ? -1 : 1;
-        }
-        applyFilter();
-    });
-});
-const resetFilter = () => {
-    brightness = "100"; saturation = "100"; inversion = "0"; grayscale = "0";
-    rotate = 0; flipHorizontal = 1; flipVertical = 1;
-    filterOptions[0].click();
-    applyFilter();
-}
-const saveImage = () => {
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width = previewImg.naturalWidth;
-    canvas.height = previewImg.naturalHeight;
-    
-    ctx.filter = `brightness(${brightness}%) saturate(${saturation}%) invert(${inversion}%) grayscale(${grayscale}%)`;
-    ctx.translate(canvas.width / 2, canvas.height / 2);
-    if(rotate !== 0) {
-        ctx.rotate(rotate * Math.PI / 180);
-    }
-    ctx.scale(flipHorizontal, flipVertical);
-    ctx.drawImage(previewImg, -canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
-    
-    const link = document.createElement("a");
-    link.download = "image.jpg";
-    link.href = canvas.toDataURL();
-    link.click();
-}
-filterSlider.addEventListener("input", updateFilter);
-resetFilterBtn.addEventListener("click", resetFilter);
-saveImgBtn.addEventListener("click", saveImage);
-fileInput.addEventListener("change", loadImage);
-chooseImgBtn.addEventListener("click", () => fileInput.click());
+import { removeBackground } from "https://esm.sh/@imgly/background-removal@1.5.5";
+const $=id=>document.getElementById(id),canvas=$("previewCanvas"),ctx=canvas.getContext("2d",{willReadFrequently:true}),fileInput=$("fileInput"),dropZone=$("dropZone");
+const presets={photo300:[300,300],photo300x400:[300,400],photo600:[600,600],photo600x800:[600,800],signature:[300,80],signature600:[600,160]};
+let mode="photo",sourceImage=null,sourceUrl=null,sourceName="application-image",cutoutUrl=null,processing=false,toastTimer;
+const settings={brightness:100,contrast:100,saturation:100};
+function toast(message){const el=$("toast");el.textContent=message;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),3000)}
+function dimensions(){return[Math.max(1,Math.min(5000,Number($("widthInput").value)||300)),Math.max(1,Math.min(5000,Number($("heightInput").value)||300))]}
+function loadImage(url){return new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=reject;img.src=url})}
+async function render(){if(!sourceImage){$("downloadBtn").disabled=true;return}const [w,h]=dimensions();canvas.width=w;canvas.height=h;ctx.clearRect(0,0,w,h);const bg=mode==="photo"?$("background").value:$("sigBg").value;if(bg!=="transparent"){ctx.fillStyle=bg;ctx.fillRect(0,0,w,h)}ctx.save();ctx.filter="brightness("+settings.brightness+"%) contrast("+settings.contrast+"%) saturate("+settings.saturation+"%)";const img=sourceImage,ratio=mode==="signature"?Math.min(w/img.width,h/img.height):Math.max(w/img.width,h/img.height),dw=img.width*ratio,dh=img.height*ratio;ctx.drawImage(img,(w-dw)/2,(h-dh)/2,dw,dh);if(mode==="signature"&&$("cleanWhite").checked&&!cutoutUrl)cleanPaper(w,h);ctx.restore();$("previewSize").textContent=w+" × "+h+" px";$("previewFormat").textContent=$("format").selectedOptions[0].text+" output";$("sizeEstimate").textContent="Ready to export · "+w+" × "+h+" pixels";$("downloadBtn").disabled=false}
+function cleanPaper(w,h){const data=ctx.getImageData(0,0,w,h),p=data.data;for(let i=0;i<p.length;i+=4){const light=Math.min(p[i],p[i+1],p[i+2]);if(light>218)p[i+3]=Math.min(p[i+3],Math.max(0,Math.min(255,(245-light)*9)))}ctx.putImageData(data,0,0)}
+async function setFile(file){if(!file)return;if(!/^image\/(jpeg|png|webp)$/.test(file.type)){toast("Please choose a JPG, PNG or WEBP image.");return}if(file.size>20*1024*1024){toast("Please choose an image smaller than 20 MB.");return}if(sourceUrl)URL.revokeObjectURL(sourceUrl);if(cutoutUrl){URL.revokeObjectURL(cutoutUrl);cutoutUrl=null}sourceUrl=URL.createObjectURL(file);sourceName=file.name.replace(/\.[^.]+$/,"")||"application-image";try{sourceImage=await loadImage(sourceUrl);$("emptyState").hidden=true;canvas.hidden=false;$("fileMeta").hidden=false;$("fileMeta").textContent=file.name+" · "+(file.size/1024).toFixed(0)+" KB";await render();toast("Image loaded. Adjust your settings and preview.")}catch{toast("Could not open this image. Please try another file.")}}
+fileInput.addEventListener("change",e=>setFile(e.target.files[0]));
+["dragenter","dragover"].forEach(n=>dropZone.addEventListener(n,e=>{e.preventDefault();dropZone.classList.add("dragover")}));
+["dragleave","drop"].forEach(n=>dropZone.addEventListener(n,e=>{e.preventDefault();dropZone.classList.remove("dragover")}));
+dropZone.addEventListener("drop",e=>setFile(e.dataTransfer.files[0]));
+$("preset").addEventListener("change",()=>{const p=presets[$("preset").value];if(p){$("widthInput").value=p[0];$("heightInput").value=p[1]}if($("preset").value.startsWith("signature"))setMode("signature");render()});
+["widthInput","heightInput","background","sigBg","cleanWhite"].forEach(id=>$(id).addEventListener("change",render));
+["brightness","contrast","sharpness"].forEach(id=>$(id).addEventListener("input",()=>{const key=id==="sharpness"?"saturation":id;settings[key]=Number($(id).value);$(id+"Val").textContent=$(id).value+"%";render()}));
+$("resetAdjust").addEventListener("click",()=>{settings.brightness=settings.contrast=settings.saturation=100;["brightness","contrast","sharpness"].forEach(id=>{$(id).value=100;$(id+"Val").textContent="100%"});render()});
+function setMode(next){mode=next;document.querySelectorAll(".mode-tab").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));$("photoOptions").hidden=mode!=="photo";$("signatureOptions").hidden=mode!=="signature";if(mode==="signature"){$("preset").value="signature";$("widthInput").value=300;$("heightInput").value=80}else if($("preset").value.startsWith("signature")){$("preset").value="photo300";$("widthInput").value=300;$("heightInput").value=300}render()}
+document.querySelectorAll(".mode-tab").forEach(b=>b.addEventListener("click",()=>setMode(b.dataset.mode)));
+$("removeBg").addEventListener("click",async()=>{if(!sourceUrl||!sourceImage){toast("Upload a photo first.");return}if(processing)return;processing=true;const button=$("removeBg");button.disabled=true;button.querySelector("b").textContent="Removing background…";toast("AI background removal started. First run may take a little longer.");try{const blob=await removeBackground(sourceUrl,{model:"medium",output:{format:"image/png"}});if(cutoutUrl)URL.revokeObjectURL(cutoutUrl);cutoutUrl=URL.createObjectURL(blob);sourceImage=await loadImage(cutoutUrl);$("background").value="#ffffff";await render();toast("Background removed. Choose a new background or transparent PNG.")}catch(err){console.error(err);toast("Background removal could not run. Check your connection and try again.")}finally{processing=false;button.disabled=false;button.querySelector("b").textContent="Remove background with AI"}});
+$("quality").addEventListener("input",()=>{$("qualityVal").textContent=$("quality").value+"%"});$("format").addEventListener("change",render);
+$("downloadBtn").addEventListener("click",()=>{if(!sourceImage)return;const type=$("format").value,quality=Number($("quality").value)/100;if(type==="image/jpeg"&&((mode==="photo"&&$("background").value==="transparent")||(mode==="signature"&&$("sigBg").value==="transparent"))){toast("JPG does not support transparency. Choose PNG or WEBP.");return}canvas.toBlob(blob=>{if(!blob){toast("Export failed. Please try PNG.");return}const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=sourceName+"-"+mode+"-"+canvas.width+"x"+canvas.height+"."+(type==="image/jpeg"?"jpg":type==="image/png"?"png":"webp");document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);$("sizeEstimate").textContent="Downloaded · "+(blob.size/1024).toFixed(1)+" KB";toast("Your application image is ready.")},type,quality)});
+$("qualityVal").textContent=$("quality").value+"%";
