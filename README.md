@@ -1,38 +1,27 @@
 # BD Photo & Signature Studio
 
-A browser-based image editor tailored for Bangladesh job applications, recruitment portals and admission forms.
+A privacy-first browser editor for Bangladesh job applications.
 
-## Features
-- Photo and signature editing modes
-- Common application presets: 300×300, 300×400, 600×600, 600×800, 300×80 and 600×160 pixels
-- Custom output dimensions
-- AI background removal using the browser-side @imgly/background-removal package
-- White, light blue, soft green, grey and transparent photo backgrounds
-- Signature paper cleanup for light backgrounds
-- Brightness, contrast and saturation adjustments
-- JPG, PNG and WebP export with adjustable quality
-- Responsive desktop and mobile interface
-- Local image editing; uploaded originals are not sent to an application server
+## Smart tools
+- AI portrait background removal (browser-side model)
+- One-click auto-enhance for brightness, contrast and colour
+- Rotate 90°, horizontal flip, fit/fill framing
+- Photo and signature modes with common pixel presets and custom dimensions
+- Signature paper cleanup and automatic empty-margin trimming
+- White, light blue, soft green, grey and transparent backgrounds
+- JPG, PNG and WebP export; adjustable quality and optional target file-size compression
+- Responsive interface; images are edited locally in the browser
 
-> Presets are convenient common sizes, not a guarantee of requirements for every Bangladesh employer or recruitment portal. Always check the specific job circular or application instructions before submitting.
+**Important:** Presets are examples, not official universal requirements. Check each recruitment circular or portal for exact dimensions, file format, file-size limit and background rules. Review the final image carefully. Auto-enhancement and signature trimming are automatic estimates and may need manual review.
 
 ## Run locally
-Serve this folder over HTTP because the background-removal library is loaded as an ES module. For example, run: python -m http.server 8000
-Then visit http://localhost:8000.
+Serve this folder over HTTP, for example: `python -m http.server 8000`, then open `http://localhost:8000`.
 
-## Deploy with GitHub Pages
-1. Open Settings → Pages.
-2. Under Build and deployment, choose Deploy from a branch.
-3. Select main and /(root), then Save.
-4. Wait for the Pages deployment to finish.
-
-You can also deploy this static site to Vercel.
+## GitHub Pages
+Open Settings → Pages → Deploy from a branch, select `main` and `/(root)`, then Save.
 
 ## Privacy
-Photo editing and export happen in the user's browser. The AI background-removal package downloads its model from its CDN on first use; the source photo is processed client-side. Google Fonts and the JavaScript package/model are third-party network dependencies.
+The original image is not uploaded to an application server. Background-removal model files and the editor's JavaScript module are fetched from a CDN. Google Fonts are also loaded externally.
 
-## Technology
+## Stack
 HTML · CSS · JavaScript ES modules · Canvas API · @imgly/background-removal
-
----
-Built for Bangladesh applicants.
